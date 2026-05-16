@@ -1,0 +1,9 @@
+- git init
+ Lệnh khởi tạo repo ở local 
+- git addn <file_name> 
+ Lệnh thêm 1 file cụ thể vào staging
+- git add .
+ Lệnh thêm tất cả các file vào staging
+- git commit -m"message"
+  Lệnh commit file lên repository
+  

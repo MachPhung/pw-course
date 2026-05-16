@@ -1,0 +1,7 @@
+a. file1, file2, file3 : ở local 
+b. các file ở vùng working directory
+c. sẽ bị lỗi vì các file chưa được đưa lên staging
+d. file1 ở vùng staging
+e. file1 ở repository
+f. ko có file nào được add thêm cả vì file2, file3 chưa được add vào staging, có thể sẽ bị lỗi hoặc có warning
+ 
