@@ -1,0 +1,13 @@
+git commit --amend
++ Sửa commit cuối cùng
+
+git commit --amend -m "message"
++ Sửa commit cuối cùng và sửa lun message
+
+git restore --stage <file>
+chuyển file từ staging về working directory
+
+git reset HEAD~1
+chuyển file từ commit số 1 từ repository về working directory
+
+
