@@ -22,14 +22,14 @@ test.describe("ACCOUNT - Account", () => {
 		await page.goto(WEBSITE_URL, { timeout: 50_000 });
 
 		await test.step("Input valid username and password", async () => {
-			const usernameField = page.locator("//input[@id='user_login']");
-			const passwordField = page.locator("//input[@id='user_pass']");
+			const usernameField = page.getByLabel("Username or Email Address");
+			const passwordField = page.getByRole("textbox", { name: "Password" });
 			await usernameField.fill(VALID_USERNAME);
 			await passwordField.fill(VALID_PASSWORD);
 		});
 
 		await test.step("Click on Login button", async () => {
-			await page.locator("//input[@id='wp-submit']").click();
+			await page.getByRole("button", { name: "Log In" }).click();
 
 			await expect(page).toHaveURL(/.*wp-admin/, { timeout: 50_000 });
 		});
