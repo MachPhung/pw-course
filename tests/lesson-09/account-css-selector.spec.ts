@@ -1,354 +1,332 @@
 import { test, expect } from "@playwright/test";
 
-function generateRandomString(length: number): string {
-	const characters =
-		"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-	let result = "";
-	for (let i = 0; i < length; i++) {
-		result += characters.charAt(Math.floor(Math.random() * characters.length));
-	}
-	return result;
-}
+test.describe("ACCOUNT - Account", async () => {
+	const now = Date.now();
 
-const USERNAME = `E101_phung_${generateRandomString(2)}`;
-const EMAIL = `phung.mach${generateRandomString(2)}@example.com`;
+	const testData = {
+		username: "betterbytes.academy.admin",
+		password: "StrongPass@BetterBytesAcademy",
 
-const VALID_USERNAME = "betterbytes.academy.admin";
-const VALID_PASSWORD = "StrongPass@BetterBytesAcademy";
-const WEBSITE_URL = "https://pw-practice-dev.playwrightvn.com/wp-admin";
+		newUser: {
+			username: `phung_${now}`,
+			email: `phung_${now}@example.com`,
+			password: "TestPass@123",
+			firstName: "Phung",
+			lastName: "Mach",
+			messageCreateSuccess: "New user created.",
+			visibleMenus: [
+				"Dashboard",
+				"Posts",
+				"Media",
+				"Pages",
+				"Comments",
+				"Profile",
+				"Tools",
+			],
+			invisibleMenus: ["Appearance", "Users", "Plugins"],
+			menus: [
+				{
+					name: "Dashboard",
+					visible: true,
+				},
+				{
+					name: "Posts",
+					visible: true,
+				},
+				{
+					name: "Media",
+					visible: true,
+				},
+				{
+					name: "Comments",
+					visible: true,
+				},
+				{
+					name: "Profile",
+					visible: true,
+				},
+				{
+					name: "Tools",
+					visible: true,
+				},
+				{
+					name: "Appearance",
+					visible: false,
+				},
+				{
+					name: "Users",
+					visible: false,
+				},
+				{
+					name: "Plugins",
+					visible: false,
+				},
+			],
+		},
+	};
 
-test.describe("ACCOUNT - Account", () => {
 	test.beforeEach(async ({ page }) => {
-		await page.goto(WEBSITE_URL, { timeout: 50_000 });
+		const locators = {
+			username: page.locator("#user_login"),
+			password: page.locator("#user_pass"),
+			btnLogin: page.locator("#wp-submit"),
+			loginErrorNotice: page.locator("#login_error"),
 
-		await test.step("Input valid username and password", async () => {
-			const usernameField = page.locator("#user_login");
-			const passwordField = page.locator("#user_pass");
-			await usernameField.fill(VALID_USERNAME);
-			await passwordField.fill(VALID_PASSWORD);
+			dashboard: {
+				usernameMenu: page.locator("div.wp-menu-name:has-text('Users')"),
+				addUserMenu: page.locator("a:has-text('Add User')"),
+				addNewUserHeading: page.locator("h1#add-new-user"),
+			},
+		};
+
+		const dashboardPage = {
+			atGalence: page.locator("h2:has-text('At a Glance')"),
+		};
+
+		await test.step("Navigate to the login page, login with admin user", async () => {
+			await page.goto("https://pw-practice-dev.playwrightvn.com/wp-admin");
+			await locators.username.fill(testData.username);
+			await locators.password.fill(testData.password);
+			await locators.btnLogin.click();
+
+			//Assert
+			await expect(page).toHaveURL(/wp-admin/);
+			await expect(dashboardPage.atGalence).toBeVisible();
+			await page.waitForTimeout(2000); // Wait for 2 seconds to ensure the page is fully loaded
 		});
 
-		await test.step("Click on Login button", async () => {
-			await page.locator("#wp-submit").click();
+		//Hover user menu and click add user
+		await test.step("Navigate to user page", async () => {
+			//await expect(async () => {
+			//	await locators.dashboard.usernameMenu.hover();
+			//	await expect(locators.dashboard.addUserMenu).toBeVisible();
+			//	await locators.dashboard.addUserMenu.click();
+			// }).toPass();
 
-			await expect(page).toHaveURL(/.*wp-admin/, { timeout: 50_000 });
-		});
-	});
-	// Test case: Create account with editor permission
-
-	test("@ACC_001: Create account with editor permission", async ({ page }) => {
-		await test.step("Click on Users menu", async () => {
-			const usersMenu = page.locator(
-				"#adminmenuwrap li#menu-users a[href='users.php'] div.wp-menu-name",
-			);
-			await usersMenu.click();
-			const pageHeader = page.locator(
-				"#wpcontent #wpbody #wpbody-content .wrap h1",
-			);
-			await expect(pageHeader).toContainText("Users");
-
-			const addNewButton = page.locator(
-				"#wpcontent #wpbody #wpbody-content .wrap a.page-title-action",
-			);
-			await expect(addNewButton).toBeEnabled();
-
-			await addNewButton.click();
-		});
-
-		await test.step("Add New User with editor permission", async () => {
-			const usernameField = page.locator("#user_login");
-			const emailField = page.locator("#email");
-			const firstNameField = page.locator("#first_name");
-			const lastNameField = page.locator("#last_name");
-			const passwordField = page.locator("#pass1");
-			const roleDropdown = page.locator("#role");
-			const addNewUserButton = page.locator("#createusersub");
-
-			await usernameField.fill(USERNAME);
-			await emailField.fill(EMAIL);
-			await passwordField.clear();
-			await passwordField.fill("sfhhm^ObELl*1nJS(hGy3Vt6");
-			await firstNameField.fill("E101");
-			await lastNameField.fill("Phung");
-			await roleDropdown.selectOption("editor");
-			await addNewUserButton.click();
-
-			await expect(page.locator("#message p")).toContainText(
-				"New user created",
-			);
-		});
-
-		// Test case: Logout and login with new user
-
-		await test.step("Logout and login with new user", async () => {
-			const accountMenu = page.locator(
-				"//li[@id='wp-admin-bar-my-account']/child::a",
-			);
-			await accountMenu.hover();
-
-			const logoutLink = page.locator(
-				"//li[@id='wp-admin-bar-logout']/child::a",
-			);
-			await expect(logoutLink).toBeVisible({ timeout: 10_000 });
-			await logoutLink.click({ timeout: 50_000 });
-			await expect(page).toHaveURL(/.*wp-login.php/, { timeout: 10_000 });
-
-			const usernameField = page.locator("#user_login");
-			const passwordField = page.locator("#user_pass");
-			await usernameField.fill(USERNAME);
-			await passwordField.fill("sfhhm^ObELl*1nJS(hGy3Vt6");
-			await page.locator("#wp-submit").click();
-			await expect(page).toHaveURL(/.*wp-admin/, { timeout: 50_000 });
-
-			const permission = {
-				editor: [
-					"Dashboard",
-					"Posts",
-					"Media",
-					"Pages",
-					"Comments 00 Comments in moderation",
-					"Profile",
-					"Tools",
-				],
-				subscriber: ["Dashboard", "Profile"],
-				administrator: [
-					"Dashboard",
-					"Posts",
-					"Media",
-					"Pages",
-					"Comments",
-					"Appearance",
-					"Plugins",
-					"Users",
-					"Tools",
-					"Settings",
-				],
-			};
-
-			const permissionMenu = page.locator("#adminmenuwrap");
-			await expect(permissionMenu).toBeVisible({ timeout: 50_000 });
-			const menuItems = page.locator(
-				"#adminmenuwrap #adminmenu li[contains(@id, 'menu-dashboard') or contains(@id, 'menu-posts') or contains(@id, 'menu-media') or contains(@id, 'menu-pages') or contains(@id, 'menu-comments') or contains(@id, 'menu-appearance') or contains(@id, 'menu-plugins') or contains(@id, 'menu-users') or contains(@id, 'menu-tools') or contains(@id, 'menu-settings')] .wp-menu-name",
-			);
-			const menuTexts = await menuItems.allTextContents();
-			console.log("menuTexts:", menuTexts);
-			console.log("Expected editor permissions:", permission.editor);
-			expect(menuTexts).toEqual(permission.editor);
-		});
-
-		// Test case: Logout new user then login with admin account
-
-		await test.step("Logout new user then login with admin account", async () => {
-			const accountMenu = page.locator(
-				"//li[@id='wp-admin-bar-my-account']/child::a",
-			);
-			await accountMenu.hover();
-
-			const logoutLink = page.locator(
-				"//li[@id='wp-admin-bar-logout']/child::a",
-			);
-			await expect(logoutLink).toBeVisible();
-			await logoutLink.click();
-			await expect(page).toHaveURL(/.*wp-login.php/, { timeout: 50_000 });
-
-			const usernameField = page.locator("#user_login");
-			const passwordField = page.locator("#user_pass");
-			await usernameField.fill(VALID_USERNAME);
-			await passwordField.fill(VALID_PASSWORD);
-			await page.locator("#wp-submit").click();
-			await expect(page).toHaveURL(/.*wp-admin/, { timeout: 50_000 });
-		});
-
-		// Test case: Delete new user
-
-		await test.step("Delete new user", async () => {
-			const usersMenu = page.locator(
-				"#adminmenuwrap #adminmenu li[id='menu-users'] a[href='users.php'] div.wp-menu-name",
-			);
-			await usersMenu.click();
-			const pageHeader = page.locator(
-				"#wpcontent #wpbody #wpbody-content .wrap h1",
-			);
-			await expect(pageHeader).toContainText("Users");
-
-			// Search for the user row based on the username and locate the delete link
-			await page.locator("#user-search-input").fill(USERNAME);
-			await page.locator("#search-submit").click();
-
-			// Wait for the user row to be visible before proceeding
-			await page.waitForTimeout(2000);
-			// Locate the user row based on the username and find the delete link
-			await page.waitForSelector(
-				`#wpcontent #wpbody #wpbody-content .wrap table.wp-list-table widefat fixed striped users tbody tr td[data-colname="Username"] strong a[text()="${USERNAME}"]/ancestor::tr`,
-				{ timeout: 50_000 },
-			);
-			// Delete the user by clicking the delete link and confirming the deletion
-			await page
-				.locator(
-					`#wpcontent #wpbody #wpbody-content .wrap table.wp-list-table widefat fixed striped users tbody tr td[data-colname="Username"] strong a[text()="${USERNAME}"]/ancestor::tr span.delete a`,
-				)
-				.click();
-			await expect(page).toHaveURL(/.*user-delete.php/, { timeout: 50_000 });
-			await page
-				.locator('//input[@id="submit"][@value="Confirm Deletion"]')
-				.click();
-			// Verify that the user deletion message is displayed
-			await expect(page.locator('//div[@id="message"]/p')).toContainText(
-				"User deleted",
-			);
+			await expect(locators.dashboard.addNewUserHeading).toBeVisible();
 		});
 	});
 
-	// Test case: Create account with subscriber permission
+	test.afterAll(async ({ page }) => {
+		const locators = {
+			username: page.locator("#user_login"),
+			password: page.locator("#user_pass"),
+			btnLogin: page.locator("#wp-submit"),
+			searchUserInput: page.locator("#user-search-input"),
+			btnSearchUser: page.locator("#search-submit"),
+			newUserRow: page.locator(
+				`td[data-colname='Username']:has-text('${testData.newUser.username}')`,
+			),
+			deleteLink: page.locator(
+				`td[data-colname='Username']:has-text('${testData.newUser.username}') + td span.delete a:has-text('Delete')`,
+			),
+			deleteUserMessage: page.locator("#message"),
+		};
 
-	test("@ACC_002: Create account with subscriber permission", async ({
+		const dashboardPage = {
+			atGalence: page.locator("h2:has-text('At a Glance')"),
+		};
+
+		const deleteUserPage = {
+			deleteUserHeading: page.locator("h1:has-text('Delete Users')"),
+			confirmDeleteButton: page.locator("#submit"),
+		};
+
+		await test.step("Logout then login with admin user and delete the new user", async () => {
+			await page.goto(
+				"https://pw-practice-dev.playwrightvn.com/wp-login.php?loggedout=true&wp_lang=en_US",
+			);
+
+			await locators.username.fill(testData.username);
+			await locators.password.fill(testData.password);
+			await locators.btnLogin.click();
+
+			await expect(dashboardPage.atGalence).toBeVisible();
+
+			//Delete the new user
+			await page.goto(
+				"https://pw-practice-dev.playwrightvn.com/wp-admin/users.php",
+			);
+
+			await locators.searchUserInput.fill(testData.newUser.username);
+			await locators.btnSearchUser.click();
+
+			await expect(locators.newUserRow).toBeVisible();
+			const deleteLink = locators.deleteLink;
+			await deleteLink.click();
+
+			await expect(deleteUserPage.deleteUserHeading).toBeVisible();
+			await deleteUserPage.confirmDeleteButton.click();
+
+			await expect(page).toHaveURL(/users.php/);
+			await expect(locators.newUserRow).not.toBeVisible();
+			await expect(locators.deleteUserMessage).toHaveText(/User deleted./);
+		});
+	});
+
+	test("@ACC_001 -Create account with editor permissions", async ({ page }) => {
+		const locators = {
+			loginPage: {
+				username: page.locator("#user_login"),
+				password: page.locator("#user_pass"),
+				btnLogin: page.locator("#wp-submit"),
+			},
+
+			username: page.locator("#user_login"),
+			email: page.locator("#email"),
+			firstName: page.locator("#first_name"),
+			lastName: page.locator("#last_name"),
+			password: page.locator("#pass1"),
+			role: page.locator("#role"),
+			btnCreateUser: page.locator("#createusersub"),
+			messageBar: page.locator("#message"),
+		};
+		await test.step("Add new user", async () => {
+			//Arrange
+			const role = "Editor";
+			const newUser = testData.newUser;
+
+			//Act
+			await locators.username.fill(newUser.username);
+			await locators.email.fill(newUser.email);
+			await locators.firstName.fill(newUser.firstName);
+			await locators.lastName.fill(newUser.lastName);
+			await locators.password.fill(newUser.password);
+			await locators.role.selectOption(role);
+			await locators.btnCreateUser.click();
+
+			//Assert
+			await expect(locators.messageBar).toContainText(
+				newUser.messageCreateSuccess,
+			);
+		});
+
+		await test.step("Logout and login with the new created user", async () => {
+			//Thuc hien dang xuat va dang nhap lai voi user name vua tao
+			await page.goto(
+				"https://pw-practice-dev.playwrightvn.com/wp-login.php?loggedout=true&wp_lang=en_US",
+			);
+
+			const loginPage = locators.loginPage;
+			await loginPage.username.fill(testData.newUser.username);
+			await loginPage.password.fill(testData.newUser.password);
+			await loginPage.btnLogin.click();
+
+			//Assert
+			await expect(page).toHaveURL(/wp-admin/);
+			//Show menu cach 1
+			// const visibleMenus = testData.newUser.visibleMenus;
+			// for (let i = 0; i < visibleMenus.length; i++) {
+			// 	const menuLocator = page.locator(
+			// 		`//div[@class='wp-menu-name' and text()='${visibleMenus[i]}']`,
+			// 	);
+			// 	await expect(menuLocator).toBeVisible();
+			// }
+			// const invisibleMenus = testData.newUser.invisibleMenus;
+			// for (let i = 0; i < invisibleMenus.length; i++) {
+			// 	const menuLocator = page.locator(
+			// 		`//div[@class='wp-menu-name' and text()='${invisibleMenus[i]}']`,
+			// 	);
+			// 	await expect(menuLocator).not.toBeVisible();
+			// }
+
+			//Show menu cach 2
+			const menus = testData.newUser.menus;
+			for (let i = 0; i < menus.length; i++) {
+				const item = menus[i];
+				const menuLocator = page.locator(
+					`div.wp-menu-name:has-text('${item.name}')`,
+				);
+				if (item.visible) {
+					await expect(menuLocator).toBeVisible();
+				} else {
+					await expect(menuLocator).not.toBeVisible();
+				}
+			}
+		});
+	});
+
+	test("@ACC_002 -Create account with subscriber permissions", async ({
 		page,
 	}) => {
-		await test.step("Click on Users menu", async () => {
-			const usersMenu = page.locator(
-				"#adminmenuwrap #adminmenu li[id='menu-users'] a[href='users.php'] div.wp-menu-name",
-			);
-			await usersMenu.click();
-			const pageHeader = page.locator(
-				"#wpcontent #wpbody #wpbody-content .wrap h1",
-			);
-			await expect(pageHeader).toContainText("Users");
+		const locators = {
+			loginPage: {
+				username: page.locator("#user_login"),
+				password: page.locator("#user_pass"),
+				btnLogin: page.locator("#wp-submit"),
+			},
 
-			const addNewButton = page.locator(
-				"#wpcontent #wpbody #wpbody-content .wrap a.page-title-action",
-			);
-			await expect(addNewButton).toBeEnabled();
+			username: page.locator("#user_login"),
+			email: page.locator("#email"),
+			firstName: page.locator("#first_name"),
+			lastName: page.locator("#last_name"),
+			password: page.locator("#pass1"),
+			role: page.locator("#role"),
+			btnCreateUser: page.locator("#createusersub"),
+			messageBar: page.locator("#message"),
+		};
+		await test.step("Add new user", async () => {
+			//Arrange
+			const role = "Subscriber";
+			const newUser = testData.newUser;
 
-			await addNewButton.click();
-		});
+			//Act
+			await locators.username.fill(newUser.username);
+			await locators.email.fill(newUser.email);
+			await locators.firstName.fill(newUser.firstName);
+			await locators.lastName.fill(newUser.lastName);
+			await locators.password.fill(newUser.password);
+			await locators.role.selectOption(role);
+			await locators.btnCreateUser.click();
 
-		await test.step("Add New User with subscriber permission", async () => {
-			const usernameField = page.locator("#user_login");
-			const emailField = page.locator("#email");
-			const firstNameField = page.locator("#first_name");
-			const lastNameField = page.locator("#last_name");
-			const passwordField = page.locator("#pass1");
-			const roleDropdown = page.locator("#role");
-			const addNewUserButton = page.locator("#createusersub");
-
-			await usernameField.fill(USERNAME);
-			await emailField.fill(EMAIL);
-			await passwordField.clear();
-			await passwordField.fill("sfhhm^ObELl*1nJS(hGy3Vt6");
-			await firstNameField.fill("E101");
-			await lastNameField.fill("Phung");
-			await roleDropdown.selectOption("subscriber");
-			await addNewUserButton.click();
-
-			await expect(page.locator("#message p")).toContainText(
-				"New user created",
+			//Assert
+			await expect(locators.messageBar).toContainText(
+				newUser.messageCreateSuccess,
 			);
 		});
 
-		// Test case: Logout and login with new user
-
-		await test.step("Logout and login with new user", async () => {
-			const accountMenu = page.locator("#wp-admin-bar-my-account a");
-			await accountMenu.hover();
-
-			const logoutLink = page.locator("#wp-admin-bar-logout a");
-			await expect(logoutLink).toBeVisible({ timeout: 10_000 });
-			await logoutLink.click({ timeout: 50_000 });
-			await expect(page).toHaveURL(/.*wp-login.php/, { timeout: 10_000 });
-
-			const usernameField = page.locator("#user_login");
-			const passwordField = page.locator("#user_pass");
-			await usernameField.fill(USERNAME);
-			await passwordField.fill("sfhhm^ObELl*1nJS(hGy3Vt6");
-			await page.locator("#wp-submit").click();
-			await expect(page).toHaveURL(/.*wp-admin/, { timeout: 50_000 });
-
-			const permission = {
-				editor: [
-					"Dashboard",
-					"Posts",
-					"Media",
-					"Pages",
-					"Comments 00 Comments in moderation",
-					"Profile",
-					"Tools",
-				],
-				subscriber: ["Dashboard", "Profile"],
-				administrator: [
-					"Dashboard",
-					"Posts",
-					"Media",
-					"Pages",
-					"Comments",
-					"Appearance",
-					"Plugins",
-					"Users",
-					"Tools",
-					"Settings",
-				],
-			};
-
-			const permissionMenu = page.locator("#adminmenuwrap");
-			await expect(permissionMenu).toBeVisible({ timeout: 50_000 });
-			const menuItems = page.locator(
-				"#adminmenuwrap #adminmenu li[data-menu-id] .wp-menu-name",
+		await test.step("Logout and login with the new created user", async () => {
+			//Thuc hien dang xuat va dang nhap lai voi user name vua tao
+			await page.goto(
+				"https://pw-practice-dev.playwrightvn.com/wp-login.php?loggedout=true&wp_lang=en_US",
 			);
-			const menuTexts = await menuItems.allTextContents();
-			console.log("menuTexts:", menuTexts);
-			console.log("Expected subscriber permissions:", permission.subscriber);
-			expect(menuTexts).toEqual(permission.subscriber);
-		});
 
-		await test.step("Logout new user then login with admin account", async () => {
-			const accountMenu = page.locator("#wp-admin-bar-my-account a");
-			await accountMenu.hover();
+			const loginPage = locators.loginPage;
+			await loginPage.username.fill(testData.newUser.username);
+			await loginPage.password.fill(testData.newUser.password);
+			await loginPage.btnLogin.click();
 
-			const logoutLink = page.locator("#wp-admin-bar-logout a");
-			await expect(logoutLink).toBeVisible();
-			await logoutLink.click();
-			await expect(page).toHaveURL(/.*wp-login.php/, { timeout: 50_000 });
+			//Assert
+			await expect(page).toHaveURL(/wp-admin/);
+			//Show menu cach 1
+			// const visibleMenus = testData.newUser.visibleMenus;
+			// for (let i = 0; i < visibleMenus.length; i++) {
+			// 	const menuLocator = page.locator(
+			// 		`//div[@class='wp-menu-name' and text()='${visibleMenus[i]}']`,
+			// 	);
+			// 	await expect(menuLocator).toBeVisible();
+			// }
+			// const invisibleMenus = testData.newUser.invisibleMenus;
+			// for (let i = 0; i < invisibleMenus.length; i++) {
+			// 	const menuLocator = page.locator(
+			// 		`//div[@class='wp-menu-name' and text()='${invisibleMenus[i]}']`,
+			// 	);
+			// 	await expect(menuLocator).not.toBeVisible();
+			// }
 
-			const usernameField = page.locator("#user_login");
-			const passwordField = page.locator("#user_pass");
-			await usernameField.fill(VALID_USERNAME);
-			await passwordField.fill(VALID_PASSWORD);
-			await page.locator("#wp-submit").click();
-			await expect(page).toHaveURL(/.*wp-admin/, { timeout: 50_000 });
-		});
-
-		// Test case: Delete new user
-
-		await test.step("Delete new user", async () => {
-			const usersMenu = page.locator(
-				"#adminmenuwrap #adminmenu li[id='menu-users'] a[href='users.php'] .wp-menu-name",
-			);
-			await usersMenu.click();
-			const pageHeader = page.locator(
-				"#wpcontent #wpbody #wpbody-content .wrap h1",
-			);
-			await expect(pageHeader).toContainText("Users");
-
-			// Search for the user row based on the username and locate the delete link
-			await page.locator("#user-search-input").fill(USERNAME);
-			await page.locator("#search-submit").click();
-
-			// Wait for the user row to be visible before proceeding
-			await page.waitForTimeout(2000);
-			// Locate the user row based on the username and find the delete link
-			await page.waitForSelector(
-				`#wpbody-content .wrap table.wp-list-table tbody tr td[data-colname="Username"] strong a:text("${USERNAME}")`,
-				{ timeout: 50_000 },
-			);
-			// Delete the user by clicking the delete link and confirming the deletion
-			await page
-				.locator(
-					`#wpbody-content .wrap table.wp-list-table tbody tr td[data-colname="Username"] strong a:text("${USERNAME}")/ancestor::tr .delete a`,
-				)
-				.click();
-			await expect(page).toHaveURL(/.*user-delete.php/, { timeout: 50_000 });
-			await page.locator('#submit[value="Confirm Deletion"]').click();
-			// Verify that the user deletion message is displayed
-			await expect(page.locator("#message p")).toContainText("User deleted");
+			//Show menu cach 2
+			const menus = testData.newUser.menus;
+			for (let i = 0; i < menus.length; i++) {
+				const item = menus[i];
+				const menuLocator = page.locator(
+					`//div[@class='wp-menu-name' and text()='${item.name}']`,
+				);
+				if (item.visible) {
+					await expect(menuLocator).toBeVisible();
+				} else {
+					await expect(menuLocator).not.toBeVisible();
+				}
+			}
 		});
 	});
 });
